@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
 use hex_literal::hex;
+use std::process::exit;
+use std::fs;
+
+mod cfg;
 
 #[derive(Deserialize, Serialize)]
 struct Payload {
@@ -14,11 +18,6 @@ struct Payload {
     // TODO what data do we need??
 }
 
-async fn hello() -> Result<String, warp::Rejection> {
-    return Ok(
-        "hello".to_string()
-    );
-}
 
 async fn verify_hmac(payload: Payload, signature: String) -> bool {
     if signature.starts_with("sha256=") {
@@ -44,24 +43,33 @@ async fn hook(
     );
 }
 
+
+async fn hello() -> Result<String, warp::Rejection> {
+    return Ok(
+        "hello".to_string()
+    );
+}
+
+
 #[tokio::main]
 async fn main() {
-    // GET /hello/warp => 200 OK with body "Hello, warp!"
 
-    let hello_filter = 
+    let config = cfg::read_config();
+
+    warp::serve(
         warp::path("hello")
-        .and(warp::path::end())
-        .and(warp::post())
-        .and_then(hello);
+            .and(warp::path::end())
+            .and(warp::post())
+            .and_then(hello)
+            .or(
+                warp::path!("hook" / String)
+                    .and(warp::post())
+                    .and(warp::body::json())
+                    .and(warp::header::<String>("X-Hub-Signature-256"))
+                    .and_then(hook)
+            )
 
-    let hello_filter = 
-        warp::path!("hook" / String)
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(warp::header::<String>("X-Hub-Signature-256"))
-        .and_then(hook);
-
-    warp::serve(hello_filter)
+        )
         .run(([127, 0, 0, 1], 3030))
         .await;
 }

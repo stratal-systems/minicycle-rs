@@ -1,0 +1,10 @@
+[repos.foo]
+name = "foo"
+path = "bar"
+
+[repos.bar]
+name = "foo"
+path = "bar"
+
+
+
