@@ -1,44 +1,68 @@
+use warp::Filter;
+use warp::reply::Json;
 use std::convert::Infallible;
-use std::net::SocketAddr;
+use warp::http::StatusCode;
+use serde::{Deserialize, Serialize};
+use sha2::Sha256;
+use hmac::{Hmac, Mac};
+use hex_literal::hex;
 
-use http_body_util::Full;
-use hyper::body::Bytes;
-use hyper::server::conn::http1;
-use hyper::service::service_fn;
-use hyper::{Request, Response};
-use hyper_util::rt::TokioIo;
-use tokio::net::TcpListener;
+#[derive(Deserialize, Serialize)]
+struct Payload {
+    // "ref" is a keyword so need to escape it!
+    r#ref: String
+    // TODO what data do we need??
+}
 
-async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
+async fn hello() -> Result<String, warp::Rejection> {
+    return Ok(
+        "hello".to_string()
+    );
+}
+
+async fn verify_hmac(payload: Payload, signature: String) -> bool {
+    if signature.starts_with("sha256=") {
+        // yeah looks good enough
+        return true;
+    }
+    return false;
+}
+
+async fn hook(
+        name: String,
+        payload: Payload,
+        signature: String,
+        ) -> Result<impl warp::Reply, Infallible> {
+
+    if !verify_hmac(payload, signature).await {
+        return Ok(
+            warp::reply::with_status("not allowed", warp::http::StatusCode::FORBIDDEN)
+        );
+    }
+    return Ok(
+        warp::reply::with_status("allowed", warp::http::StatusCode::OK)
+    );
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+async fn main() {
+    // GET /hello/warp => 200 OK with body "Hello, warp!"
 
-    // We create a TcpListener and bind it to 127.0.0.1:3000
-    let listener = TcpListener::bind(addr).await?;
+    let hello_filter = 
+        warp::path("hello")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and_then(hello);
 
-    // We start a loop to continuously accept incoming connections
-    loop {
-        let (stream, _) = listener.accept().await?;
+    let hello_filter = 
+        warp::path!("hook" / String)
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::header::<String>("X-Hub-Signature-256"))
+        .and_then(hook);
 
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
-        let io = TokioIo::new(stream);
-
-        // Spawn a tokio task to serve multiple connections concurrently
-        tokio::task::spawn(async move {
-            // Finally, we bind the incoming connection to our `hello` service
-            if let Err(err) = http1::Builder::new()
-                // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service_fn(hello))
-                .await
-            {
-                eprintln!("Error serving connection: {:?}", err);
-            }
-        });
-    }
+    warp::serve(hello_filter)
+        .run(([127, 0, 0, 1], 3030))
+        .await;
 }
 
