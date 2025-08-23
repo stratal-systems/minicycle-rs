@@ -1,13 +1,6 @@
 use warp::Filter;
-use warp::reply::Json;
 use std::convert::Infallible;
-use warp::http::StatusCode;
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-use hmac::{Hmac, Mac};
-use hex_literal::hex;
-use std::process::exit;
-use std::fs;
 
 mod cfg;
 
