@@ -3,18 +3,18 @@ use std::collections::HashMap;
 use std::fs;
 use std::process::exit;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Repo {
     name: String,
     path: String,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Cfg {
     repos: HashMap<String, Repo>
 }
 
-pub fn read_config() {
+pub fn read_config() -> Cfg {
     let contents = match fs::read_to_string("minicycle.toml") {
         Ok(c) => c,
         Err(_) => {
@@ -33,5 +33,6 @@ pub fn read_config() {
 
     println!("{:?}", cfg);
 
+    return cfg;
 }
 

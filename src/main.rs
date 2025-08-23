@@ -1,8 +1,14 @@
 use warp::Filter;
+use std::process::exit;
 use std::convert::Infallible;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
+use tokio::time::{sleep, Duration};
 
 mod cfg;
+mod appstate;
+use crate::appstate::AppState;
 
 #[derive(Deserialize, Serialize)]
 struct Payload {
@@ -21,16 +27,47 @@ async fn verify_hmac(payload: Payload, signature: String) -> bool {
 }
 
 async fn hook(
+        state: AppState,
         name: String,
         payload: Payload,
         signature: String,
         ) -> Result<impl warp::Reply, Infallible> {
 
+    //if state.busy {
+    //    return Ok(
+    //        warp::reply::with_status("busy", warp::http::StatusCode::BAD_REQUEST)
+    //    );
+    //}
+    //state.busy = true;
+
+    let mut busy = state.busy.lock().await;
+    if *busy {
+        return Ok(
+            warp::reply::with_status("busy!", warp::http::StatusCode::FORBIDDEN)
+        );
+    }
+    *busy = true;
+    drop(busy);
+
     if !verify_hmac(payload, signature).await {
+
+        let mut busy = state.busy.lock().await;
+        if !*busy { eprintln!("Huh!!??"); exit(1); }
+        *busy = false;
+        drop(busy);
+
         return Ok(
             warp::reply::with_status("not allowed", warp::http::StatusCode::FORBIDDEN)
         );
     }
+
+    sleep(Duration::from_millis(5000)).await;
+
+    let mut busy = state.busy.lock().await;
+    if !*busy { eprintln!("Huh!!??"); exit(1); }
+    *busy = false;
+    drop(busy);
+
     return Ok(
         warp::reply::with_status("allowed", warp::http::StatusCode::OK)
     );
@@ -47,7 +84,10 @@ async fn hello() -> Result<String, warp::Rejection> {
 #[tokio::main]
 async fn main() {
 
-    let config = cfg::read_config();
+    let state = AppState {
+        cfg: cfg::read_config(),
+        busy: Arc::new(Mutex::new(false))
+    };
 
     warp::serve(
         warp::path("hello")
@@ -59,7 +99,11 @@ async fn main() {
                     .and(warp::post())
                     .and(warp::body::json())
                     .and(warp::header::<String>("X-Hub-Signature-256"))
-                    .and_then(hook)
+                    .and_then(
+                        move |name: String, payload: Payload, signature: String| {
+                            hook(state.clone(), name, payload, signature)
+                        }
+                    )
             )
 
         )
