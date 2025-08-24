@@ -27,7 +27,7 @@ async fn verify_hmac(payload: Payload, signature: String) -> bool {
 }
 
 async fn hook(
-        state: AppState,
+        state: Arc<AppState>,
         name: String,
         payload: Payload,
         signature: String,
@@ -79,8 +79,10 @@ async fn main() {
 
     let state = AppState {
         cfg: cfg::read_config(),
-        busy: Arc::new(Mutex::new(false))
+        busy: Mutex::new(false),
     };
+
+    let state_ptr = Arc::new(state);
 
     warp::serve(
         warp::path("hello")
@@ -94,7 +96,7 @@ async fn main() {
                     .and(warp::header::<String>("X-Hub-Signature-256"))
                     .and_then(
                         move |name: String, payload: Payload, signature: String| {
-                            hook(state.clone(), name, payload, signature)
+                            hook(state_ptr.clone(), name, payload, signature)
                         }
                     )
             )

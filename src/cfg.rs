@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use std::fs;
 use std::process::exit;
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Repo {
     name: String,
     path: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Cfg {
     repos: HashMap<String, Repo>
 }
