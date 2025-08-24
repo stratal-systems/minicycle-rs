@@ -1,5 +1,4 @@
 use tokio::sync::Mutex;
-use std::sync::Arc;
 use crate::cfg;
 
 pub struct AppState {
