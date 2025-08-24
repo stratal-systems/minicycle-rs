@@ -2,7 +2,7 @@ use tokio::sync::Mutex;
 use std::sync::Arc;
 use crate::cfg;
 
-// TODO don't cfg but share it!! It's readonly!
+// TODO don't clone cfg but share it!! It's readonly!
 #[derive(Clone)]
 pub struct AppState {
     pub cfg: cfg::Cfg,

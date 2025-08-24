@@ -33,17 +33,10 @@ async fn hook(
         signature: String,
         ) -> Result<impl warp::Reply, Infallible> {
 
-    //if state.busy {
-    //    return Ok(
-    //        warp::reply::with_status("busy", warp::http::StatusCode::BAD_REQUEST)
-    //    );
-    //}
-    //state.busy = true;
-
     let mut busy = state.busy.lock().await;
     if *busy {
         return Ok(
-            warp::reply::with_status("busy!", warp::http::StatusCode::FORBIDDEN)
+            warp::reply::with_status("busy!", warp::http::StatusCode::SERVICE_UNAVAILABLE)
         );
     }
     *busy = true;
