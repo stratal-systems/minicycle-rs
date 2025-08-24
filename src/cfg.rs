@@ -5,13 +5,13 @@ use std::process::exit;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Repo {
-    name: String,
-    path: String,
+    pub name: String,
+    pub path: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Cfg {
-    repos: HashMap<String, Repo>
+    pub repos: HashMap<String, Repo>
 }
 
 pub fn read_config() -> Cfg {

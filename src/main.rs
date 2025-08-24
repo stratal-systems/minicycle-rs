@@ -1,10 +1,12 @@
-use warp::Filter;
-use std::process::exit;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::process::exit;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
+use warp::Filter;
+use warp::http::StatusCode;
+use warp::reply::with_status;
 
 mod cfg;
 mod appstate;
@@ -33,37 +35,23 @@ async fn hook(
         signature: String,
         ) -> Result<impl warp::Reply, Infallible> {
 
-    let mut busy = state.busy.lock().await;
-    if *busy {
-        return Ok(
-            warp::reply::with_status("busy!", warp::http::StatusCode::SERVICE_UNAVAILABLE)
-        );
-    }
-    *busy = true;
-    drop(busy);
+    let Ok(_guard) = state.busy.try_lock()
+    else {
+        return Ok(with_status("busy!", StatusCode::SERVICE_UNAVAILABLE));
+    };
 
     if !verify_hmac(payload, signature).await {
-
-        let mut busy = state.busy.lock().await;
-        if !*busy { eprintln!("Huh!!??"); exit(1); }
-        *busy = false;
-        drop(busy);
-
-        return Ok(
-            warp::reply::with_status("not allowed", warp::http::StatusCode::FORBIDDEN)
-        );
+        return Ok(with_status("not allowed", StatusCode::FORBIDDEN));
     }
+
+    let Some(review) = state.cfg.repos.get(&name)
+    else {
+        return Ok(with_status("repo not found", StatusCode::NOT_FOUND));
+    };
 
     sleep(Duration::from_millis(5000)).await;
 
-    let mut busy = state.busy.lock().await;
-    if !*busy { eprintln!("Huh!!??"); exit(1); }
-    *busy = false;
-    drop(busy);
-
-    return Ok(
-        warp::reply::with_status("allowed", warp::http::StatusCode::OK)
-    );
+    return Ok(with_status("allowed", StatusCode::OK));
 }
 
 
@@ -79,7 +67,7 @@ async fn main() {
 
     let state = AppState {
         cfg: cfg::read_config(),
-        busy: Mutex::new(false),
+        busy: Mutex::new(()),
     };
 
     let state_ptr = Arc::new(state);

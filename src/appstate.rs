@@ -3,6 +3,6 @@ use crate::cfg;
 
 pub struct AppState {
     pub cfg: cfg::Cfg,
-    pub busy: Mutex<bool>,
+    pub busy: Mutex<()>,
 }
 
