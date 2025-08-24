@@ -7,10 +7,14 @@ use tokio::time::{sleep, Duration};
 use warp::Filter;
 use warp::http::StatusCode;
 use warp::reply::with_status;
+use tracing::{info, warn, error};
+use tracing_subscriber;
+use git2::Repository;
 
 mod cfg;
 mod appstate;
 use crate::appstate::AppState;
+use crate::cfg::Repo;
 
 #[derive(Deserialize, Serialize)]
 struct Payload {
@@ -37,21 +41,53 @@ async fn hook(
 
     let Ok(_guard) = state.busy.try_lock()
     else {
-        return Ok(with_status("busy!", StatusCode::SERVICE_UNAVAILABLE));
+        return Ok(with_status("busy!".into(), StatusCode::SERVICE_UNAVAILABLE));
     };
 
     if !verify_hmac(payload, signature).await {
-        return Ok(with_status("not allowed", StatusCode::FORBIDDEN));
+        return Ok(with_status("not allowed".into(), StatusCode::FORBIDDEN));
     }
 
-    let Some(review) = state.cfg.repos.get(&name)
+    let Some(repo) = state.cfg.repos.get(&name)
     else {
-        return Ok(with_status("repo not found", StatusCode::NOT_FOUND));
+        return Ok(with_status("repo not found".into(), StatusCode::NOT_FOUND));
     };
 
-    sleep(Duration::from_millis(5000)).await;
+    info!("Bumping repo `{}`...", name.clone());
 
-    return Ok(with_status("allowed", StatusCode::OK));
+    match bump_repo(name.clone(), repo).await {
+        Ok(_) => {},
+        Err(err) => {
+            let errmsg = format!(
+                "Failed to bump repo `{}`! Git error: {}",
+                name,
+                err,
+                );
+
+            error!("{}", errmsg);
+            return Ok(with_status(
+                errmsg,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ));
+        },
+
+    }
+
+    return Ok(with_status("allowed".into(), StatusCode::OK));
+}
+
+async fn bump_repo(
+        name: String,
+        repo: &Repo,
+    ) -> Result<(), git2::Error> {
+
+    let git = Repository::open(repo.path.clone())?;
+    // TODO what is the git2 error type??
+
+    info!("Opened repo!");
+
+    return Ok(());
+
 }
 
 
@@ -64,6 +100,15 @@ async fn hello() -> Result<String, warp::Rejection> {
 
 #[tokio::main]
 async fn main() {
+
+    // Incantation to get logging to work
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(tracing::Level::DEBUG)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
+
+    info!("Starting minicycle-rs!!");
 
     let state = AppState {
         cfg: cfg::read_config(),

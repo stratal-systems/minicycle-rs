@@ -31,8 +31,6 @@ pub fn read_config() -> Cfg {
         }
     };
 
-    println!("{:?}", cfg);
-
     return cfg;
 }
 
