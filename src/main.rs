@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use std::process::exit;
+use std::path::Path;
+use std::process::{exit, Command};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+use tracing::{info, warn, error, debug, instrument};
+use tracing_subscriber;
 use warp::Filter;
 use warp::http::StatusCode;
 use warp::reply::with_status;
-use tracing::{info, warn, error};
-use tracing_subscriber;
 
 mod cfg;
 mod appstate;
@@ -67,7 +68,54 @@ async fn hook(
 
     }
 
+    match run_entrypoint(&state.cfg, name.clone(), repo, &payload).await {
+        Ok(_) => {},
+        Err(err) => {
+            let errmsg = format!(
+                "Failed to run entrypoint for repo `{}`: {}",
+                name,
+                err,
+                );
+
+            error!("{}", errmsg);
+            return Ok(with_status(
+                errmsg,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ));
+        },
+
+    }
+
     return Ok(with_status("allowed".into(), StatusCode::OK));
+}
+
+#[instrument]
+async fn run_entrypoint(
+        config: &cfg::Cfg,
+        name: String,
+        repo: &Repo,
+        payload: &Payload,
+    ) -> Result<(), String> {
+
+    let path_repo = Path::new(&repo.path);
+    let path_rel = Path::new(&repo.entrypoint);
+    let path_joined = path_repo.join(path_rel);
+
+    let output = match Command::new(&path_joined).output() {
+        Err(err) => { return Err(format!("{}", err)); },
+        Ok(output) => output,
+    };
+
+    debug!("{:#?}", output);
+
+    if output.status.success() {
+        info!("entrypoint executed successfully");
+        return Ok(());
+    } else {
+        error!("entrypoint exited with status: {}", output.status);
+        return Err(format!("entrypoint exited with status: {}", output.status));
+        // TODO
+    }
 }
 
 async fn bump_repo(
@@ -156,6 +204,8 @@ async fn main() {
             exit(1);
         },
     }
+
+    // TODO also check GPG!!!!
 
     let state = AppState {
         cfg: cfg::read_config(),

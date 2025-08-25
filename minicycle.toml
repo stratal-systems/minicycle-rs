@@ -1,12 +1,14 @@
-enforce_signatures = false
+enforce_signatures = true
 
 [repos.foo]
 name = "foo"
 path = "./tmp/bar"
+entrypoint = ".minicycle/entrypoint"
 
 [repos.bar]
 name = "foo"
 path = "./tmp/bar"
+entrypoint = ".minicycle/entrypoint"
 
 
 

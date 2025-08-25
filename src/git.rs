@@ -2,6 +2,9 @@ use std::io;
 use std::process::Command;
 use tracing::{info, warn, error, debug, instrument};
 
+// TODO very confusing error reporting/handling here,
+// think about it for a long time and fix it!!!!
+
 #[instrument]
 pub fn check_git() -> Result<bool, io::Error> {
     let output = Command::new("git")
