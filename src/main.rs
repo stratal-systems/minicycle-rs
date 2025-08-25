@@ -52,6 +52,22 @@ async fn verify_hmac(
     };
 }
 
+async fn get_latest_report(
+        ) -> Result<impl warp::Reply, Infallible> {
+
+    return match fs::read_to_string("minicycle.toml") {
+        Ok(content) => Ok(with_status(
+            content,
+            StatusCode::OK
+            )),
+        Err(_) => Ok(with_status(
+            "could not read latest report".into(),
+            StatusCode::INTERNAL_SERVER_ERROR
+            )),
+    };
+
+}
+
 async fn hook(
         state: Arc<AppState>,
         name: String,
@@ -153,7 +169,6 @@ async fn run_entrypoint(
     };
 
     debug!("{:#?}", output);
-
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -283,7 +298,7 @@ async fn main() {
 
     warp::serve(
         warp::path("hello")
-            .and(warp::body::content_length_limit(1024 * 16))
+            .and(warp::get())
             .and(warp::path::end())
             .and(warp::post())
             .and_then(hello)
@@ -302,6 +317,12 @@ async fn main() {
                     //        hook(state_ptr.clone(), name, payload, signature)
                     //    }
                     )
+            )
+            .or(
+                warp::path("report-latest")
+                    .and(warp::get())
+                    .and(warp::path::end())
+                    .and_then(get_latest_report)
             )
 
         )
