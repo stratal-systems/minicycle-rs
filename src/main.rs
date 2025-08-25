@@ -48,6 +48,18 @@ async fn hook(
         return Ok(with_status("repo not found".into(), StatusCode::NOT_FOUND));
     };
 
+    if payload.r#ref != "refs/heads/main" {
+        warn!(
+            "Received hook for ref {} of repo {} which is not refs/heads/main, skipping",
+            payload.r#ref,
+            name
+        );
+        return Ok(with_status(
+            "skip because not main branch".into(),
+            StatusCode::OK
+            ));
+    }
+
     info!("Bumping repo `{}`...", name.clone());
 
     match bump_repo(&state.cfg, name.clone(), repo, &payload).await {
