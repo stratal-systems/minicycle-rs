@@ -9,11 +9,11 @@ use warp::http::StatusCode;
 use warp::reply::with_status;
 use tracing::{info, warn, error};
 use tracing_subscriber;
-use git2::Repository;
 
 mod cfg;
 mod appstate;
 mod payload;
+mod git;
 use crate::payload::Payload;
 use crate::appstate::AppState;
 use crate::cfg::Repo;
@@ -74,21 +74,21 @@ async fn bump_repo(
         name: String,
         repo: &Repo,
         payload: &Payload,
-    ) -> Result<(), git2::Error> {
+    ) -> Result<(), String> {
 
-    let git = match Repository::open(repo.path.clone()) {
-        Ok(repo) => repo,
-        Err(e) => {
-            info!("Could not open, trying to clone!");
-            Repository::clone(
-                payload.repository.clone_url.as_str(),
-                repo.path.clone(),
-                )?
-            // What a mouthful ugh
-        }
-    };
+    //let git = match Repository::open(repo.path.clone()) {
+    //    Ok(repo) => repo,
+    //    Err(e) => {
+    //        info!("Could not open, trying to clone!");
+    //        Repository::clone(
+    //            payload.repository.clone_url.as_str(),
+    //            repo.path.clone(),
+    //            )?
+    //        // What a mouthful ugh
+    //    }
+    //};
 
-    info!("Opened repo!");
+    //info!("Opened repo!");
 
     return Ok(());
 
@@ -113,6 +113,18 @@ async fn main() {
         .expect("setting default subscriber failed");
 
     info!("Starting minicycle-rs!!");
+
+    match git::check() {
+        Ok(true) => { info!("Found `git` command.") },
+        Ok(false) => {
+            error!("Could not find a suitable `git`, aborting.");
+            exit(1);
+        },
+        Err(err) => {
+            error!("Error while checking for `git`, aborting: {}", err);
+            exit(1);
+        },
+    }
 
     let state = AppState {
         cfg: cfg::read_config(),

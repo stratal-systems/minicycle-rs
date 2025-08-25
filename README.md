@@ -9,17 +9,6 @@ and edit to fit your needs.
 Further details are explained in the comments
 in `minicycle.example.toml`.
 
-
-## Compiling
-
-Since minicycle-rs uses the [git2](https://docs.rs/git2/latest/git2/)
-crate,
-a binding for the [libgit2](https://libgit2.org/) C library,
-non-rust dependencies are required, namely `openssl` and `pkg-config`.
-These can be installed from your distribution's package manager.
-
-Void Linux: `xbps-install -Syu pkg-config openssl openssl-devel`
-
 ## TODO
 
 - Actually validate HMAC
