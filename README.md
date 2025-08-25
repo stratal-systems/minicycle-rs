@@ -2,6 +2,14 @@
 
 minicycle-rs is a very simple webhook-based ci/cd runner.
 
+## Configuration
+
+Copy `minicycle.example.toml` to `minicycle.toml`
+and edit to fit your needs.
+Further details are explained in the comments
+in `minicycle.example.toml`.
+
+
 ## Compiling
 
 Since minicycle-rs uses the [git2](https://docs.rs/git2/latest/git2/)
