@@ -1,10 +1,10 @@
 [repos.foo]
 name = "foo"
-path = "bar"
+path = "./tmp/bar"
 
 [repos.bar]
 name = "foo"
-path = "bar"
+path = "./tmp/bar"
 
 
 

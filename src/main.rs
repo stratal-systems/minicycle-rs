@@ -13,18 +13,12 @@ use git2::Repository;
 
 mod cfg;
 mod appstate;
+mod payload;
+use crate::payload::Payload;
 use crate::appstate::AppState;
 use crate::cfg::Repo;
 
-#[derive(Deserialize, Serialize)]
-struct Payload {
-    // "ref" is a keyword so need to escape it!
-    r#ref: String
-    // TODO what data do we need??
-}
-
-
-async fn verify_hmac(payload: Payload, signature: String) -> bool {
+async fn verify_hmac(payload: &Payload, signature: String) -> bool {
     if signature.starts_with("sha256=") {
         // yeah looks good enough
         return true;
@@ -44,7 +38,7 @@ async fn hook(
         return Ok(with_status("busy!".into(), StatusCode::SERVICE_UNAVAILABLE));
     };
 
-    if !verify_hmac(payload, signature).await {
+    if !verify_hmac(&payload, signature).await {
         return Ok(with_status("not allowed".into(), StatusCode::FORBIDDEN));
     }
 
@@ -55,7 +49,7 @@ async fn hook(
 
     info!("Bumping repo `{}`...", name.clone());
 
-    match bump_repo(name.clone(), repo).await {
+    match bump_repo(name.clone(), repo, &payload).await {
         Ok(_) => {},
         Err(err) => {
             let errmsg = format!(
@@ -79,10 +73,20 @@ async fn hook(
 async fn bump_repo(
         name: String,
         repo: &Repo,
+        payload: &Payload,
     ) -> Result<(), git2::Error> {
 
-    let git = Repository::open(repo.path.clone())?;
-    // TODO what is the git2 error type??
+    let git = match Repository::open(repo.path.clone()) {
+        Ok(repo) => repo,
+        Err(e) => {
+            info!("Could not open, trying to clone!");
+            Repository::clone(
+                payload.repository.clone_url.as_str(),
+                repo.path.clone(),
+                )?
+            // What a mouthful ugh
+        }
+    };
 
     info!("Opened repo!");
 
