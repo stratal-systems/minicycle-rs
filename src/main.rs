@@ -49,11 +49,11 @@ async fn hook(
 
     info!("Bumping repo `{}`...", name.clone());
 
-    match bump_repo(name.clone(), repo, &payload).await {
+    match bump_repo(&state.cfg, name.clone(), repo, &payload).await {
         Ok(_) => {},
         Err(err) => {
             let errmsg = format!(
-                "Failed to bump repo `{}`! Git error: {}",
+                "Failed to bump repo `{}`: {}",
                 name,
                 err,
                 );
@@ -71,6 +71,7 @@ async fn hook(
 }
 
 async fn bump_repo(
+        config: &cfg::Cfg,
         name: String,
         repo: &Repo,
         payload: &Payload,
@@ -98,6 +99,27 @@ async fn bump_repo(
             return Err(format!("Error while trying to check repo: {}", err));
         },
     };
+
+    match git::pull(repo.path.as_str(), payload.r#ref.as_str()) {
+        Ok(true) => { info!("Pull OK") },
+        Ok(false) => { return Err("Error pulling repo.".into()) },
+        Err(err) => {
+            return Err(format!("Error while cloning repo: {}", err));
+        },
+    };
+
+    if config.enforce_signatures {
+        match git::verify_commit(repo.path.as_str(), payload.r#ref.as_str()) {
+            Ok(true) => { info!("Signature verification OK") },
+            Ok(false) => { return Err("Error verifying signature.".into()) },
+            Err(err) => {
+                return Err(format!("Error verifying signature: {}", err));
+            },
+        };
+    } else {
+        warn!("Skipping signature verification!!!!!");
+    }
+
 
     return Ok(());
 

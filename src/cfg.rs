@@ -11,7 +11,15 @@ pub struct Repo {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Cfg {
-    pub repos: HashMap<String, Repo>
+    pub repos: HashMap<String, Repo>,
+
+    #[serde(default = "wtf")]
+    pub enforce_signatures: bool,
+}
+
+// TODO is this necessary!?!?
+fn wtf() -> bool {
+    return true;
 }
 
 pub fn read_config() -> Cfg {
