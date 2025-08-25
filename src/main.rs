@@ -14,14 +14,19 @@ use bytes;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use hex;
+use std::fs;
+use std::io::Write;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 mod cfg;
 mod appstate;
 mod payload;
 mod git;
+mod report;
 use crate::payload::Payload;
 use crate::appstate::AppState;
 use crate::cfg::Repo;
+use crate::report::Report;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -149,6 +154,23 @@ async fn run_entrypoint(
 
     debug!("{:#?}", output);
 
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs();
+    let report_path = Path::new(&config.report_dir).join(format!("{}.json", now));
+    let report = Report {
+        time: now,
+        ok: output.status.success(),
+    };
+    let report_str = serde_json::to_string(&report).unwrap();
+    let mut file = fs::File::create(report_path).unwrap();
+    //file.write_all(report_str);
+    write!(file, "{}", report_str);
+    // TODO very ugly code like `report_path` being re-created every time
+    // FIX MEE!!!
+
     if output.status.success() {
         info!("entrypoint executed successfully");
         return Ok(());
@@ -234,6 +256,11 @@ async fn main() {
 
     info!("Starting minicycle-rs!!");
 
+    let state = AppState {
+        cfg: cfg::read_config(),
+        busy: Mutex::new(()),
+    };
+
     match git::check_git() {
         Ok(true) => { info!("Found `git` command.") },
         Ok(false) => {
@@ -247,23 +274,21 @@ async fn main() {
     }
 
     // TODO also check GPG!!!!
-
-    let state = AppState {
-        cfg: cfg::read_config(),
-        busy: Mutex::new(()),
-    };
+    
+    info!("creating report dir at {}", state.cfg.report_dir);
+    fs::create_dir_all(state.cfg.report_dir.clone()).unwrap();
 
     let state_ptr = Arc::new(state);
 
     warp::serve(
         warp::path("hello")
-            .and(warp::body::content_length_limit(1024 * 8))
+            .and(warp::body::content_length_limit(1024 * 16))
             .and(warp::path::end())
             .and(warp::post())
             .and_then(hello)
             .or(
                 warp::path!("hook" / String)
-                    .and(warp::body::content_length_limit(1024 * 8))
+                    .and(warp::body::content_length_limit(1024 * 16))
                     .and(warp::post())
                     .and(warp::body::bytes())
                     .and(warp::header::<String>("X-Hub-Signature-256"))

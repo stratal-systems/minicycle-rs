@@ -16,13 +16,20 @@ pub struct Cfg {
 
     pub hmac_key: String,
 
-    #[serde(default = "wtf")]
+    #[serde(default = "default_enforce_signatures")]
     pub enforce_signatures: bool,
+
+    #[serde(default = "default_report_dir")]
+    pub report_dir: String,
 }
 
 // TODO is this necessary!?!?
-fn wtf() -> bool {
+fn default_enforce_signatures() -> bool {
     return true;
+}
+
+fn default_report_dir() -> String {
+    return "./reports".into();
 }
 
 pub fn read_config() -> Cfg {
