@@ -14,6 +14,8 @@ pub struct Repo {
 pub struct Cfg {
     pub repos: HashMap<String, Repo>,
 
+    pub hmac_key: String,
+
     #[serde(default = "wtf")]
     pub enforce_signatures: bool,
 }

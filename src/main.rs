@@ -10,6 +10,10 @@ use tracing_subscriber;
 use warp::Filter;
 use warp::http::StatusCode;
 use warp::reply::with_status;
+use bytes;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use hex;
 
 mod cfg;
 mod appstate;
@@ -19,18 +23,35 @@ use crate::payload::Payload;
 use crate::appstate::AppState;
 use crate::cfg::Repo;
 
-async fn verify_hmac(payload: &Payload, signature: String) -> bool {
-    if signature.starts_with("sha256=") {
-        // yeah looks good enough
-        return true;
-    }
-    return false;
+type HmacSha256 = Hmac<Sha256>;
+
+async fn verify_hmac(
+        config: &cfg::Cfg,
+        payload_bytes: &bytes::Bytes,
+        signature: String
+        ) -> bool {
+
+    let mut mac = HmacSha256::new_from_slice(config.hmac_key.as_bytes()).unwrap();
+    mac.update(payload_bytes);
+    // TODO clone??
+    let result = mac.clone().finalize();
+
+    debug!("Computed HMAC is: {:x}", result.into_bytes());
+
+    // TODO is this constant-time comparison?
+    // I think it is!
+    // TODO unwraps are a mess fix it!!
+    return match mac.verify_slice(&hex::decode(signature.strip_prefix("sha256=").unwrap()).unwrap()) {
+        Ok(_) => true,
+        _ => false,
+    };
 }
 
 async fn hook(
         state: Arc<AppState>,
         name: String,
-        payload: Payload,
+        //payload: Payload,
+        payload_bytes: bytes::Bytes,
         signature: String,
         ) -> Result<impl warp::Reply, Infallible> {
 
@@ -39,9 +60,17 @@ async fn hook(
         return Ok(with_status("busy!".into(), StatusCode::SERVICE_UNAVAILABLE));
     };
 
-    if !verify_hmac(&payload, signature).await {
+    if !verify_hmac(&state.cfg, &payload_bytes, signature).await {
         return Ok(with_status("not allowed".into(), StatusCode::FORBIDDEN));
     }
+
+    let payload: Payload = match serde_json::from_slice(&payload_bytes) {
+        Ok(p) => p,
+        Err(_) => { return Ok(warp::reply::with_status(
+            "Invalid JSON".into(),
+            StatusCode::BAD_REQUEST
+        )); },
+    };
 
     let Some(repo) = state.cfg.repos.get(&name)
     else {
@@ -228,18 +257,24 @@ async fn main() {
 
     warp::serve(
         warp::path("hello")
+            .and(warp::body::content_length_limit(1024 * 8))
             .and(warp::path::end())
             .and(warp::post())
             .and_then(hello)
             .or(
                 warp::path!("hook" / String)
+                    .and(warp::body::content_length_limit(1024 * 8))
                     .and(warp::post())
-                    .and(warp::body::json())
+                    .and(warp::body::bytes())
                     .and(warp::header::<String>("X-Hub-Signature-256"))
                     .and_then(
-                        move |name: String, payload: Payload, signature: String| {
-                            hook(state_ptr.clone(), name, payload, signature)
+                        move |name: String, payload_bytes: bytes::Bytes, signature: String| {
+                            hook(state_ptr.clone(), name, payload_bytes, signature)
                         }
+                    //.and_then(
+                    //    move |name: String, payload: Payload, signature: String| {
+                    //        hook(state_ptr.clone(), name, payload, signature)
+                    //    }
                     )
             )
 

@@ -1,3 +1,4 @@
+hmac_key = "syEXRxCEfGz37sdby4QdChzRKQn3xwbN4xUdIrHFCU2IRX4NqcBNUAtWh5DEA7JD"
 enforce_signatures = true
 
 [repos.foo]
