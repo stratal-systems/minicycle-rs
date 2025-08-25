@@ -163,11 +163,12 @@ async fn run_entrypoint(
     let report = Report {
         time: now,
         ok: output.status.success(),
+        message: payload.head_commit.message.clone(),
     };
     let report_str = serde_json::to_string(&report).unwrap();
     let mut file = fs::File::create(report_path).unwrap();
     //file.write_all(report_str);
-    write!(file, "{}", report_str);
+    write!(file, "{}", report_str).unwrap();
     // TODO very ugly code like `report_path` being re-created every time
     // FIX MEE!!!
 

@@ -4,5 +4,6 @@ use serde::{Deserialize, Serialize};
 pub struct Report {
     pub time: u64,
     pub ok: bool,
+    pub message: String,
 }
 

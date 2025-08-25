@@ -5,10 +5,16 @@ pub struct Payload {
     // "ref" is a keyword so need to escape it!
     pub r#ref: String,
     pub repository: Repository,
+    pub head_commit: HeadCommit,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Repository {
     pub clone_url: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct HeadCommit {
+    pub message: String,
 }
 
