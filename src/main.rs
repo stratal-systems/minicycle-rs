@@ -76,19 +76,28 @@ async fn bump_repo(
         payload: &Payload,
     ) -> Result<(), String> {
 
-    //let git = match Repository::open(repo.path.clone()) {
-    //    Ok(repo) => repo,
-    //    Err(e) => {
-    //        info!("Could not open, trying to clone!");
-    //        Repository::clone(
-    //            payload.repository.clone_url.as_str(),
-    //            repo.path.clone(),
-    //            )?
-    //        // What a mouthful ugh
-    //    }
-    //};
+    match git::status(repo.path.as_str()) {
+        Ok(true) => { info!("repo OK"); },
+        Ok(false) => {
+            info!("repo not OK, trying clone");
 
-    //info!("Opened repo!");
+            match git::clone(
+                    repo.path.as_str(),
+                    payload.repository.clone_url.as_str()
+                    ) {
+                Ok(true) => { info!("Clone OK"); },
+                Ok(false) => {
+                    return Err("Error while cloning repo.".into());
+                },
+                Err(err) => {
+                    return Err(format!("Error while cloning repo: {}", err));
+                },
+            };
+        },
+        Err(err) => {
+            return Err(format!("Error while trying to check repo: {}", err));
+        },
+    };
 
     return Ok(());
 
@@ -114,7 +123,7 @@ async fn main() {
 
     info!("Starting minicycle-rs!!");
 
-    match git::check() {
+    match git::check_git() {
         Ok(true) => { info!("Found `git` command.") },
         Ok(false) => {
             error!("Could not find a suitable `git`, aborting.");
