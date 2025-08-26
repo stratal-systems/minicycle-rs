@@ -5,10 +5,12 @@ report_dir = "./reports"
 [repos.foo]
 path = "./repos/bar"
 entrypoint = ".minicycle/entrypoint"
+branches = ["main", "premain"]
 
 [repos.bar]
 path = "./repos/bar"
 entrypoint = ".minicycle/entrypoint"
+branches = ["main"]
 
 
 
