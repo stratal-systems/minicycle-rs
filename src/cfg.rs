@@ -6,7 +6,10 @@ use std::process::exit;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Repo {
     pub path: String,
-    pub entrypoint: String
+    pub entrypoint: String,
+
+    #[serde(default = "default_repo_branches")]
+    pub branches: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -29,6 +32,10 @@ fn default_enforce_signatures() -> bool {
 
 fn default_report_dir() -> String {
     return "./reports".into();
+}
+
+fn default_repo_branches() -> Vec<String> {
+    return vec!("main".into());
 }
 
 pub fn read_config() -> Cfg {

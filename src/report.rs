@@ -5,5 +5,6 @@ pub struct Report {
     pub time: u64,
     pub ok: bool,
     pub message: String,
+    pub r#ref: String,
 }
 

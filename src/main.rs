@@ -101,17 +101,17 @@ async fn hook(
         return Ok(with_status("repo not found".into(), StatusCode::NOT_FOUND));
     };
 
-    if payload.r#ref != "refs/heads/main" {
-        warn!(
-            "Received hook for ref {} of repo {} which is not refs/heads/main, skipping",
-            payload.r#ref,
-            name
-        );
-        return Ok(with_status(
-            "skip because not main branch".into(),
-            StatusCode::OK
-            ));
-    }
+    //if payload.r#ref != "refs/heads/main" {
+    //    warn!(
+    //        "Received hook for ref {} of repo {} which is not refs/heads/main, skipping",
+    //        payload.r#ref,
+    //        name
+    //    );
+    //    return Ok(with_status(
+    //        "skip because not main branch".into(),
+    //        StatusCode::OK
+    //        ));
+    //}
 
     info!("Bumping repo `{}`...", name.clone());
 
@@ -183,6 +183,7 @@ async fn run_entrypoint(
         time: now,
         ok: output.status.success(),
         message: payload.head_commit.message.clone(),
+        r#ref: payload.r#ref.clone(),
     };
     let report_str = serde_json::to_string(&report).unwrap();
     let mut file = fs::File::create(&report_path).unwrap();
@@ -231,11 +232,11 @@ async fn bump_repo(
         },
     };
 
-    match git::pull(repo.path.as_str(), payload.r#ref.as_str()) {
-        Ok(true) => { info!("Pull OK") },
-        Ok(false) => { return Err("Error pulling repo.".into()) },
+    match git::fetch_and_checkout(repo.path.as_str(), payload.r#ref.as_str()) {
+        Ok(true) => { info!("checkout OK") },
+        Ok(false) => { return Err("Error checking out repo.".into()) },
         Err(err) => {
-            return Err(format!("Error while cloning repo: {}", err));
+            return Err(format!("Error while checking out repo: {}", err));
         },
     };
 

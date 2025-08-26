@@ -62,6 +62,42 @@ pub fn pull(path: &str, r#ref: &str) -> Result<bool, io::Error> {
     Ok(output.status.success())
 }
 
+#[instrument]
+pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .arg("fetch")
+        .arg("origin")
+        .arg(r#ref)
+        .output()?;
+
+    debug!("{:#?}", output);
+
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    // TODO will break on slash in branch name??
+    // TODO spaghett!!
+    let mut parts = r#ref.split('/');
+    parts.next().unwrap();
+    parts.next().unwrap();
+    let branch_name = parts.next().unwrap();
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .arg("checkout")
+        .arg(branch_name)
+        .output()?;
+
+    debug!("{:#?}", output);
+
+    Ok(output.status.success())
+}
+
+
 
 #[instrument]
 pub fn verify_commit(path: &str, r#ref: &str) -> Result<bool, io::Error> {
