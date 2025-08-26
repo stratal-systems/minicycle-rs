@@ -5,7 +5,6 @@ use std::process::exit;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Repo {
-    pub name: String,
     pub path: String,
     pub entrypoint: String
 }

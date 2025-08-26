@@ -1,18 +1,14 @@
+hmac_key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+enforce_signatures = true
+report_dir = "./reports"
+
 [repos.foo]
-# This is a repository definition.
-# URL is not needed, it is ready from the webhook payload
-# sent by github.
-
-name = "foo"
-
-path = "./tmp/bar"
-# Relative paths are supported.
-# Non-existent intermediate directories will be auto-created
-# (thing `mkdir -p`).
+path = "./repos/bar"
+entrypoint = ".minicycle/entrypoint"
 
 [repos.bar]
-name = "foo"
-path = "./tmp/bar"
+path = "./repos/bar"
+entrypoint = ".minicycle/entrypoint"
 
 
 

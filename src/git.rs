@@ -1,6 +1,6 @@
 use std::io;
 use std::process::Command;
-use tracing::{info, warn, error, debug, instrument};
+use tracing::{warn, debug, instrument};
 
 // TODO very confusing error reporting/handling here,
 // think about it for a long time and fix it!!!!

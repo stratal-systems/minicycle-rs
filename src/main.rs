@@ -1,10 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::path::Path;
 use std::process::{exit, Command};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::time::{sleep, Duration};
 use tracing::{info, warn, error, debug, instrument};
 use tracing_subscriber;
 use warp::Filter;
@@ -117,7 +115,7 @@ async fn hook(
 
     info!("Bumping repo `{}`...", name.clone());
 
-    match bump_repo(&state.cfg, name.clone(), repo, &payload).await {
+    match bump_repo(&state.cfg, repo, &payload).await {
         Ok(_) => {},
         Err(err) => {
             let errmsg = format!(
@@ -206,7 +204,6 @@ async fn run_entrypoint(
 
 async fn bump_repo(
         config: &cfg::Cfg,
-        name: String,
         repo: &Repo,
         payload: &Payload,
     ) -> Result<(), String> {
