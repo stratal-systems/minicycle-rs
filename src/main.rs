@@ -113,6 +113,22 @@ async fn hook(
     //        ));
     //}
 
+
+    'branch_check: {
+
+        // TODO spaghett
+        for branch in &*repo.branches {
+            if payload.r#ref.ends_with(&*branch) {
+                break 'branch_check;
+            }
+        }
+
+        return Ok(with_status(
+                "Not listening on this branch".into(),
+                StatusCode::OK
+                ));
+    }
+
     info!("Bumping repo `{}`...", name.clone());
 
     match bump_repo(&state.cfg, repo, &payload).await {
