@@ -94,6 +94,18 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
 
     debug!("{:#?}", output);
 
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .arg("pull")
+        .output()?;
+
+    debug!("{:#?}", output);
+
     Ok(output.status.success())
 }
 

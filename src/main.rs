@@ -182,7 +182,9 @@ async fn run_entrypoint(
     let path_rel = Path::new(&repo.entrypoint);
     let path_joined = path_repo.join(path_rel);
 
-    let output = match Command::new(&path_joined).output() {
+    let output = match Command::new(&path_rel)
+            .current_dir(path_repo)
+            .output() {
         Err(err) => { return Err(format!("{}", err)); },
         Ok(output) => output,
     };
