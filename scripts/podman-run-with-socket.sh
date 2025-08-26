@@ -23,6 +23,13 @@ then
 	mkdir -p ./reports
 fi
 
+if [ ! -d ./gnupg ]
+then
+	echo "No gnupg dir found, making"
+	mkdir -p ./gnupg
+fi
+
+
 podman system service --time=0 "unix://$(pwd)/podman.sock" &
 
 podman run \
@@ -35,6 +42,7 @@ podman run \
 	-v ./repos:/app/repos:rw \
 	-v ./reports:/app/reports:rw \
 	-v ./podman.sock:/app/podman.sock:rw \
+	-v ./gnupg:/root/.gnupg:rw \
 	-e CONTAINER_HOST=unix:///app/podman.sock \
 	minicycle-rs
 

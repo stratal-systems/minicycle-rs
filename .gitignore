@@ -102,4 +102,6 @@ tmp
 minicycle.toml
 reports
 repos
+gnupg
+podman.sock
 

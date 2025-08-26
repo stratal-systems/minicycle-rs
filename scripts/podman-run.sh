@@ -20,6 +20,12 @@ then
 	mkdir -p ./reports
 fi
 
+if [ ! -d ./gnupg ]
+then
+	echo "No gnupg dir found, making"
+	mkdir -p ./gnupg
+fi
+
 
 podman run \
 	--hostname minicycle-rs \
@@ -30,6 +36,7 @@ podman run \
 	-v ./minicycle.toml:/app/minicycle.toml:ro \
 	-v ./repos:/app/repos:rw \
 	-v ./reports:/app/reports:rw \
+	-v ./gnupg:/root/.gnupg:rw \
 	minicycle-rs
 
 
