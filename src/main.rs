@@ -23,6 +23,7 @@ mod appstate;
 mod payload;
 mod git;
 mod report;
+mod force_symlink;
 use crate::payload::Payload;
 use crate::appstate::AppState;
 use crate::cfg::Repo;
@@ -53,9 +54,13 @@ async fn verify_hmac(
 }
 
 async fn get_latest_report(
+        state: Arc<AppState>,
         ) -> Result<impl warp::Reply, Infallible> {
 
-    return match fs::read_to_string("minicycle.toml") {
+    let latest_path = Path::new(&state.cfg.report_dir).join("latest.json");
+    // TODO copypasta!!
+
+    return match fs::read_to_string(latest_path) {
         Ok(content) => Ok(with_status(
             content,
             StatusCode::OK
@@ -175,17 +180,19 @@ async fn run_entrypoint(
         .expect("Time went backwards")
         .as_secs();
     let report_path = Path::new(&config.report_dir).join(format!("{}.json", now));
+    let latest_path = Path::new(&config.report_dir).join("latest.json");
     let report = Report {
         time: now,
         ok: output.status.success(),
         message: payload.head_commit.message.clone(),
     };
     let report_str = serde_json::to_string(&report).unwrap();
-    let mut file = fs::File::create(report_path).unwrap();
+    let mut file = fs::File::create(&report_path).unwrap();
     //file.write_all(report_str);
     write!(file, "{}", report_str).unwrap();
     // TODO very ugly code like `report_path` being re-created every time
     // FIX MEE!!!
+    force_symlink::force_symlink(format!("{}.json", now), latest_path).unwrap();
 
     if output.status.success() {
         info!("entrypoint executed successfully");
@@ -295,6 +302,9 @@ async fn main() {
     fs::create_dir_all(state.cfg.report_dir.clone()).unwrap();
 
     let state_ptr = Arc::new(state);
+    let foo = state_ptr.clone();
+    let bar = state_ptr.clone();
+    // TODO fix thiiiss!!
 
     warp::serve(
         warp::path("hello")
@@ -310,7 +320,7 @@ async fn main() {
                     .and(warp::header::<String>("X-Hub-Signature-256"))
                     .and_then(
                         move |name: String, payload_bytes: bytes::Bytes, signature: String| {
-                            hook(state_ptr.clone(), name, payload_bytes, signature)
+                            hook(foo.clone(), name, payload_bytes, signature)
                         }
                     //.and_then(
                     //    move |name: String, payload: Payload, signature: String| {
@@ -322,7 +332,11 @@ async fn main() {
                 warp::path("report-latest")
                     .and(warp::get())
                     .and(warp::path::end())
-                    .and_then(get_latest_report)
+                    .and_then(
+                        move || {
+                            get_latest_report(bar.clone())
+                        }
+                    )
             )
 
         )
