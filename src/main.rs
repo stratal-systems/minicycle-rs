@@ -182,6 +182,31 @@ async fn run_entrypoint(
     let path_rel = Path::new(&repo.entrypoint);
     let path_joined = path_repo.join(path_rel);
 
+    let time_start = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs();
+
+    let report_path = Path::new(&config.report_dir).join(format!("{}.json", time_start));
+    let latest_path = Path::new(&config.report_dir).join("latest.json");
+
+    let mut report = report::Report {
+        message: payload.head_commit.message.clone(),
+        r#ref: payload.r#ref.clone(),
+        start: report::Start {
+            time: time_start,
+        },
+        finish: None
+    };
+
+    let report_str = serde_json::to_string(&report).unwrap();
+    let mut file = fs::File::create(&report_path).unwrap();
+    write!(file, "{}", report_str).unwrap();
+    // TODO very ugly code like `report_path` being re-created every time
+    // FIX MEE!!!
+    force_symlink::force_symlink(format!("{}.json", time_start), &latest_path).unwrap();
+
+
     let output = match Command::new(&path_rel)
             .current_dir(path_repo)
             .output() {
@@ -191,25 +216,20 @@ async fn run_entrypoint(
 
     debug!("{:#?}", output);
 
-    let now = SystemTime::now()
+    let time_finish = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_secs();
-    let report_path = Path::new(&config.report_dir).join(format!("{}.json", now));
-    let latest_path = Path::new(&config.report_dir).join("latest.json");
-    let report = Report {
-        time: now,
+
+    report.finish = Some(report::Finish {
+        time: time_finish,
         ok: output.status.success(),
-        message: payload.head_commit.message.clone(),
-        r#ref: payload.r#ref.clone(),
-    };
+    });
+
     let report_str = serde_json::to_string(&report).unwrap();
     let mut file = fs::File::create(&report_path).unwrap();
-    //file.write_all(report_str);
     write!(file, "{}", report_str).unwrap();
-    // TODO very ugly code like `report_path` being re-created every time
-    // FIX MEE!!!
-    force_symlink::force_symlink(format!("{}.json", now), latest_path).unwrap();
+    force_symlink::force_symlink(format!("{}.json", time_start), &latest_path).unwrap();
 
     if output.status.success() {
         info!("entrypoint executed successfully");
