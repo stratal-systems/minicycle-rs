@@ -3,6 +3,7 @@ use hex;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use std::convert::Infallible;
+use std::env;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -13,8 +14,8 @@ use tokio::sync::Mutex;
 use tracing::{info, warn, error, debug, instrument};
 use tracing_subscriber;
 use warp::Filter;
-use warp::http::StatusCode;
 use warp::http::Response;
+use warp::http::StatusCode;
 use warp::reply::with_status;
 
 mod cfg;
@@ -193,7 +194,7 @@ async fn run_entrypoint(
     let report_path = Path::new(&config.report_dir).join(format!("{}.json", time_start));
     let latest_path = Path::new(&config.report_dir).join("latest.json");
 
-    let artifacts_path = Path::new(&config.artifact_dir).join(format!("{}-{}", name, time_start));
+    let artifacts_path = env::current_dir().unwrap().join(&config.artifact_dir).join(format!("{}-{}", name, time_start));
     fs::create_dir_all(&artifacts_path).unwrap();
 
     let mut report = report::Report {
