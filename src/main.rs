@@ -1,20 +1,21 @@
+use bytes;
+use hex;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 use std::convert::Infallible;
+use std::fs;
+use std::io::Write;
 use std::path::Path;
 use std::process::{exit, Command};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 use tracing::{info, warn, error, debug, instrument};
 use tracing_subscriber;
 use warp::Filter;
 use warp::http::StatusCode;
+use warp::http::Response;
 use warp::reply::with_status;
-use bytes;
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-use hex;
-use std::fs;
-use std::io::Write;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 mod cfg;
 mod appstate;
@@ -59,15 +60,16 @@ async fn get_latest_report(
     // TODO copypasta!!
 
     return match fs::read_to_string(latest_path) {
-        Ok(content) => Ok(with_status(
-            content,
-            StatusCode::OK
-            )),
-        Err(_) => Ok(with_status(
-            "could not read latest report".into(),
-            StatusCode::INTERNAL_SERVER_ERROR
-            )),
+        Ok(content) => Ok(Response::builder()
+            .header("Content-Type", "application/json")
+            .status(StatusCode::OK)
+            .body(content)),
+        Err(_) => Ok(Response::builder()
+            .header("Content-Type", "text/plain")
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body("Failed to get latest report".into())),
     };
+    // TODO json error response?
 
 }
 
