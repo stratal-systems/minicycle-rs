@@ -1,4 +1,4 @@
-use bytes;
+ use bytes;
 use hex;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -350,6 +350,7 @@ async fn main() {
     let state_ptr = Arc::new(state);
     let foo = state_ptr.clone();
     let bar = state_ptr.clone();
+    let baz = state_ptr.clone();
     // TODO fix thiiiss!!
 
     warp::serve(
@@ -383,6 +384,10 @@ async fn main() {
                             get_latest_report(bar.clone())
                         }
                     )
+            )
+            .or(
+                warp::path("artifacts")
+                .and(warp::fs::dir(baz.cfg.artifact_dir.clone()))
             )
 
         )
