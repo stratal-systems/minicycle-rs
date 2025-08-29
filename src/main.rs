@@ -189,10 +189,15 @@ async fn run_entrypoint(
         .expect("Time went backwards")
         .as_secs();
 
+
     let report_path = Path::new(&config.report_dir).join(format!("{}.json", time_start));
     let latest_path = Path::new(&config.report_dir).join("latest.json");
 
+    let artifacts_path = Path::new(&config.artifact_dir).join(format!("{}-{}", name, time_start));
+    fs::create_dir_all(&artifacts_path).unwrap();
+
     let mut report = report::Report {
+        artifacts: artifacts_path.clone().into_os_string().into_string().unwrap(),
         message: payload.head_commit.message.clone(),
         r#ref: payload.r#ref.clone(),
         start: report::Start {
@@ -200,6 +205,7 @@ async fn run_entrypoint(
         },
         finish: None
     };
+    // TODO into_os_string? encoding issues??
 
     let report_str = serde_json::to_string(&report).unwrap();
     let mut file = fs::File::create(&report_path).unwrap();
@@ -210,6 +216,7 @@ async fn run_entrypoint(
 
 
     let output = match Command::new(&path_rel)
+            .env("MINICYCLE_ARTIFACTS", artifacts_path.into_os_string().into_string().unwrap())  // TODO copypasta
             .current_dir(path_repo)
             .output() {
         Err(err) => { return Err(format!("{}", err)); },

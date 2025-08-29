@@ -1,6 +1,7 @@
 hmac_key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 enforce_signatures = true
 report_dir = "./reports"
+artifact_dir = "./artifacts"
 
 [repos.foo]
 path = "./repos/bar"

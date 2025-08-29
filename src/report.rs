@@ -13,6 +13,7 @@ pub struct Finish {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Report {
+    pub artifacts: String,
     pub message: String,
     pub r#ref: String,
     pub start: Start,

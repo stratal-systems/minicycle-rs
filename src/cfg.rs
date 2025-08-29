@@ -23,6 +23,9 @@ pub struct Cfg {
 
     #[serde(default = "default_report_dir")]
     pub report_dir: String,
+
+    #[serde(default = "default_artifact_dir")]
+    pub artifact_dir: String,
 }
 
 // TODO is this necessary!?!?
@@ -32,6 +35,10 @@ fn default_enforce_signatures() -> bool {
 
 fn default_report_dir() -> String {
     return "./reports".into();
+}
+
+fn default_artifact_dir() -> String {
+    return "./artifacts".into();
 }
 
 fn default_repo_branches() -> Vec<String> {

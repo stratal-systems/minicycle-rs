@@ -104,4 +104,5 @@ reports
 repos
 gnupg
 podman.sock
+artifacts
 
