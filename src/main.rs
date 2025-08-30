@@ -368,7 +368,7 @@ async fn main() {
             .and_then(hello)
             .or(
                 warp::path!("hook" / String)
-                    .and(warp::body::content_length_limit(1024 * 16))
+                    .and(warp::body::content_length_limit(1024 * 2048))
                     .and(warp::post())
                     .and(warp::body::bytes())
                     .and(warp::header::<String>("X-Hub-Signature-256"))
