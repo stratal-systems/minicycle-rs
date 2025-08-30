@@ -194,11 +194,12 @@ async fn run_entrypoint(
     let report_path = Path::new(&config.report_dir).join(format!("{}.json", time_start));
     let latest_path = Path::new(&config.report_dir).join("latest.json");
 
-    let artifacts_path = env::current_dir().unwrap().join(&config.artifact_dir).join(format!("{}-{}", name, time_start));
+    let artifacts_name: String = format!("{}-{}", name, time_start);
+    let artifacts_path = env::current_dir().unwrap().join(&config.artifact_dir).join(&artifacts_name);
     fs::create_dir_all(&artifacts_path).unwrap();
 
     let mut report = report::Report {
-        artifacts: artifacts_path.clone().into_os_string().into_string().unwrap(),
+        artifacts: artifacts_name.clone(),
         message: payload.head_commit.message.clone(),
         r#ref: payload.r#ref.clone(),
         start: report::Start {
