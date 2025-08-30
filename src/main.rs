@@ -196,6 +196,7 @@ async fn run_entrypoint(
 
     let artifacts_name: String = format!("{}-{}", name, time_start);
     let artifacts_path = env::current_dir().unwrap().join(&config.artifact_dir).join(&artifacts_name);
+    let output_path = artifacts_path.join("output");
     fs::create_dir_all(&artifacts_path).unwrap();
 
     let mut report = report::Report {
@@ -216,11 +217,16 @@ async fn run_entrypoint(
     // FIX MEE!!!
     force_symlink::force_symlink(format!("{}.json", time_start), &latest_path).unwrap();
 
+    let output_file = fs::File::create(&output_path).unwrap();
+    let output_file_clone = output_file.try_clone().unwrap();
 
     let output = match Command::new(&path_rel)
             .env("MINICYCLE_ARTIFACTS", artifacts_path.into_os_string().into_string().unwrap())  // TODO copypasta
             .current_dir(path_repo)
-            .output() {
+            .stderr(output_file)
+            .stdout(output_file_clone)
+            .output()
+            {
         Err(err) => { return Err(format!("{}", err)); },
         Ok(output) => output,
     };
