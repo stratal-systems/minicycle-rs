@@ -109,8 +109,8 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
-        .arg("reset")
-        .arg("--hard")
+        .arg("restore")
+        .arg(".")
         .output()?;
 
     debug!("{:#?}", output);
@@ -122,8 +122,8 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
-        .arg("restore")
-        .arg(".")
+        .arg("reset")
+        .arg("--hard")
         .output()?;
 
     debug!("{:#?}", output);
