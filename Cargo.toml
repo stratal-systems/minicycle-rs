@@ -2,6 +2,8 @@
 name = "minicycle-rs"
 version = "0.1.0"
 edition = "2024"
+license = "AGPL-3.0-only"
+repository = "https://github.com/stratal-systems/minicycle-rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }

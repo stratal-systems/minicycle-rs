@@ -323,8 +323,30 @@ async fn bump_repo(
 
 
 async fn hello() -> Result<String, warp::Rejection> {
+    if (
+        env!("CARGO_PKG_LICENSE").is_empty()
+        ||
+        env!("CARGO_PKG_REPOSITORY").is_empty()
+    ) {
+        return Ok(
+            format!(
+                "Hello! I am {} version {}. The person who compiled \
+                me is violating the terms of the GNU Affero General Public \
+                License by hiding my source code from you!!",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+            ).to_string()
+        );
+    }
     return Ok(
-        "hello".to_string()
+        format!(
+            "Hello! I am {} version {}. I am licensed under {}, \
+            and my source code is at {}.",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            env!("CARGO_PKG_LICENSE"),
+            env!("CARGO_PKG_REPOSITORY"),
+        ).to_string()
     );
 }
 
@@ -370,10 +392,7 @@ async fn main() {
     // TODO fix thiiiss!!
 
     warp::serve(
-        warp::path("hello")
-            .and(warp::get())
-            .and(warp::path::end())
-            .and(warp::post())
+        warp::path::end()
             .and_then(hello)
             .or(
                 warp::path!("hook" / String)
