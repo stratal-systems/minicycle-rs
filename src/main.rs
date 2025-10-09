@@ -84,37 +84,47 @@ async fn hook(
 
     let Ok(_guard) = state.busy.try_lock()
     else {
-        return Ok(with_status("busy!".into(), StatusCode::SERVICE_UNAVAILABLE));
+        return Ok(with_status("busy!", StatusCode::SERVICE_UNAVAILABLE));
     };
 
-    if !verify_hmac(&state.cfg, &payload_bytes, signature).await {
+    if !verify_hmac(&state.cfg, &payload_bytes, signature.clone()).await {
         return Ok(with_status("not allowed".into(), StatusCode::FORBIDDEN));
     }
 
+    let state_cloned = state.clone();
+    let signature_cloned = signature.clone();
+    // FIXME this is spaghett
+
+    tokio::spawn( async {
+        run_hook(state_cloned, name, payload_bytes, signature_cloned)
+    } );
+
+    return Ok(with_status("task spawned.".into(), StatusCode::OK));
+}
+
+async fn run_hook(
+        state: Arc<AppState>,
+        name: String,
+        //payload: Payload,
+        payload_bytes: bytes::Bytes,
+        signature: String,
+) {
+
     let payload: Payload = match serde_json::from_slice(&payload_bytes) {
         Ok(p) => p,
-        Err(_) => { return Ok(warp::reply::with_status(
-            "Invalid JSON".into(),
-            StatusCode::BAD_REQUEST
-        )); },
+        Err(_) => { return (); },
+        //Err(_) => { return Ok(warp::reply::with_status(
+        //    "Invalid JSON".into(),
+        //    StatusCode::BAD_REQUEST
+        //)); },
     };
+    // TODO proper panic
 
     let Some(repo) = state.cfg.repos.get(&name)
     else {
-        return Ok(with_status("repo not found".into(), StatusCode::NOT_FOUND));
+        return ();
+        //return Ok(with_status("repo not found".into(), StatusCode::NOT_FOUND));
     };
-
-    //if payload.r#ref != "refs/heads/main" {
-    //    warn!(
-    //        "Received hook for ref {} of repo {} which is not refs/heads/main, skipping",
-    //        payload.r#ref,
-    //        name
-    //    );
-    //    return Ok(with_status(
-    //        "skip because not main branch".into(),
-    //        StatusCode::OK
-    //        ));
-    //}
 
 
     'branch_check: {
@@ -126,10 +136,11 @@ async fn hook(
             }
         }
 
-        return Ok(with_status(
-                "Not listening on this branch".into(),
-                StatusCode::OK
-                ));
+        return ();
+        //return Ok(with_status(
+        //        "Not listening on this branch".into(),
+        //        StatusCode::OK
+        //        ));
     }
 
     info!("Bumping repo `{}`...", name.clone());
@@ -144,10 +155,10 @@ async fn hook(
                 );
 
             error!("{}", errmsg);
-            return Ok(with_status(
-                errmsg,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                ));
+            //return Ok(with_status(
+            //    errmsg,
+            //    StatusCode::INTERNAL_SERVER_ERROR,
+            //    ));
         },
 
     }
@@ -162,15 +173,13 @@ async fn hook(
                 );
 
             error!("{}", errmsg);
-            return Ok(with_status(
-                errmsg,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                ));
+            //return Ok(with_status(
+            //    errmsg,
+            //    StatusCode::INTERNAL_SERVER_ERROR,
+            //    ));
         },
 
     }
-
-    return Ok(with_status("allowed".into(), StatusCode::OK));
 }
 
 #[instrument]
