@@ -69,6 +69,7 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
         .arg(path)
         .arg("fetch")
         .arg("origin")
+        .arg("--all")
         .arg(r#ref)
         .output()?;
 
@@ -80,50 +81,30 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
 
     // TODO will break on slash in branch name??
     // TODO spaghett!!
-    let mut parts = r#ref.split('/');
-    parts.next().unwrap();
-    parts.next().unwrap();
-    let branch_name = parts.next().unwrap();
-
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .arg("checkout")
-        .arg(branch_name)
-        .output()?;
-
-    debug!("{:#?}", output);
-
-    if !output.status.success() {
-        return Ok(false);
-    }
-
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .arg("pull")
-        .output()?;
-
-    debug!("{:#?}", output);
-
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .arg("restore")
-        .arg(".")
-        .output()?;
-
-    debug!("{:#?}", output);
-
-    if !output.status.success() {
-        return Ok(false);
-    }
+    //let mut parts = r#ref.split('/');
+    //parts.next().unwrap();
+    //parts.next().unwrap();
+    //let branch_name = parts.next().unwrap();
 
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
         .arg("reset")
         .arg("--hard")
+        .arg(r#ref)
+        .output()?;
+
+    debug!("{:#?}", output);
+
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .arg("restore")
+        .arg(".")
         .output()?;
 
     debug!("{:#?}", output);
