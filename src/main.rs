@@ -96,7 +96,7 @@ async fn hook(
     // FIXME this is spaghett
 
     tokio::spawn( async {
-        run_hook(state_cloned, name, payload_bytes, signature_cloned)
+        run_hook(state_cloned, name, payload_bytes, signature_cloned).await;
     } );
 
     return Ok(with_status("task spawned.".into(), StatusCode::OK));
@@ -109,6 +109,8 @@ async fn run_hook(
         payload_bytes: bytes::Bytes,
         signature: String,
 ) {
+
+    info!("Starting async payload!");
 
     let payload: Payload = match serde_json::from_slice(&payload_bytes) {
         Ok(p) => p,

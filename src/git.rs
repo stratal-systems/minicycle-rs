@@ -69,7 +69,6 @@ pub fn fetch_and_checkout(path: &str, r#ref: &str) -> Result<bool, io::Error> {
         .arg(path)
         .arg("fetch")
         .arg("origin")
-        .arg("--all")
         .arg(r#ref)
         .output()?;
 
